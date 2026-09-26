@@ -202,10 +202,47 @@ one your course uses.
 
 ```
 1. Open your Canvas in Chrome, confirm you're logged in
-2. F12 → Console  (first paste may require typing: allow pasting)
+2. F12 → Console
 3. Paste all of canvas_snippet.js, press Enter
 4. Run: python sort_downloads.py
 ```
+
+#### About Chrome's paste warning
+
+The first time you paste into DevTools Console, Chrome may block it and show a
+warning (this is anti-self-XSS protection). If that happens, it tells you to
+**type** — not paste — this, then press Enter:
+
+```
+allow pasting
+```
+
+Two things trip people up:
+
+- **You have to type it by hand.** Pasting it defeats the point, so Chrome
+  ignores a pasted copy.
+- **Only type it if Chrome actually asked.** `allow pasting` is not a command —
+  it's a confirmation phrase DevTools listens for. If there was no warning and
+  you type it anyway, you'll get:
+
+  ```
+  Uncaught SyntaxError: Unexpected identifier 'pasting'
+  ```
+
+  That error is harmless. It just means Chrome wasn't blocking you — go ahead and
+  paste the script.
+
+Once allowed, it stays allowed for that Chrome profile; you won't see it again.
+
+#### Two Chrome settings worth checking
+
+The snippet downloads dozens of files in a row, so before you run it:
+
+- **Settings → Downloads → "Ask where to save each file before downloading"**
+  must be **off**, or you'll get one save dialog per file.
+- The first download triggers a **"Download multiple files?"** permission bar.
+  Click **Allow**. If you miss it, only the first file arrives — re-run the
+  snippet, already-downloaded files are skipped.
 
 The snippet exports a manifest and triggers downloads through your existing
 session. **No access token is created or stored.** Many schools disable personal
@@ -411,7 +448,9 @@ signatures the server already hands out.
 | Everything lands in "couldn't determine" | Index too small for default thresholds — lower `min_score` |
 | Canvas returns 403 on files | Normal; per-file lookups are used instead |
 | Snippet reports files but no weeks | Module/folder names don't match any `week_patterns` |
-| `allow pasting` errors in the console | That text is only needed when Chrome prompts for it — otherwise just paste |
+| `SyntaxError: Unexpected identifier 'pasting'` | You typed `allow pasting` when Chrome wasn't blocking. Harmless — just paste the script |
+| Only the first file downloaded | You missed the "Download multiple files?" bar. Click Allow and re-run |
+| A save dialog for every file | Turn off "Ask where to save each file" in Chrome settings |
 
 ---
 

@@ -1,0 +1,9 @@
+# 默认按仓库 LF 存储
+* text=auto eol=lf
+
+# .bat 必须是 CRLF，否则在 cmd 里可能出现诡异的解析问题
+*.bat text eol=crlf
+
+# JSON / 文档
+*.json text eol=lf
+*.md   text eol=lf

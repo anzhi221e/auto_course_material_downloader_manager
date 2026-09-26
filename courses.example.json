@@ -1,0 +1,102 @@
+{
+  "_README": [
+    "复制成 courses.json 再改。courses.json 在 .gitignore 里，不会被提交。",
+    "这个文件是模板，里面没有任何真实的课程 id、学校域名或个人路径。"
+  ],
+
+  "canvas_base_url": "https://canvas.example.edu",
+
+  "term": {
+    "_README": [
+      "周文件夹的日期由这里算出来，不写死任何日期表。",
+      "换学期只改 week1_monday；换学制只改 week_count。",
+      "  quarter 制：week_count 通常 10~11",
+      "  semester 制：week_count 通常 14~16",
+      "breaks 列出所有停课周（感恩节、秋假、春假、reading week…）。",
+      "**停课周是最容易出错的地方**：机械地「上周+7天」会让停课之后的所有周",
+      "整体错一位。列进 breaks 后，脚本会跳过它再继续编号。"
+    ],
+    "name": "2026 Autumn",
+    "week1_monday": "2026-09-28",
+    "week_count": 10,
+    "has_week0": false,
+    "_has_week0_note": "开课前有 orientation 周就设 true，会多出一个 Week 00 文件夹",
+    "breaks": [
+      { "name": "Thanksgiving", "monday": "2026-11-23" }
+    ]
+  },
+
+  "_term_semester_example": {
+    "_README": "semester 制的样子，用的话把它改名成 term 并删掉上面那个",
+    "name": "2027 Spring",
+    "week1_monday": "2027-01-11",
+    "week_count": 15,
+    "has_week0": false,
+    "breaks": [
+      { "name": "Spring Break", "monday": "2027-03-08" },
+      { "name": "Reading Week", "monday": "2027-04-26" }
+    ]
+  },
+
+  "paths": {
+    "_README": "base_dir 留空则用脚本所在目录的上一级。路径里的反斜杠要写成 \\\\",
+    "base_dir": "",
+    "downloads_dir": "C:\\\\Users\\\\YOURNAME\\\\Downloads"
+  },
+
+  "matching": {
+    "_README": [
+      "扫描下载夹时的判定门槛。宁可漏判也不要错放，所以默认偏保守。",
+      "文件名风格差别大的学科可能要重调：分数普遍偏低就降 min_score，",
+      "出现错放就升 margin。"
+    ],
+    "min_score": 8.0,
+    "margin": 2.0,
+    "max_candidates": 10,
+    "min_age_seconds": 30
+  },
+
+  "courses": [
+    {
+      "_README": [
+        "folder 必须和磁盘上的课程文件夹名完全一致。",
+        "parser 决定怎么切分 syllabus 的周次，四选一：",
+        "  era   —— 「Week 1 (Sep 30) 标题」",
+        "  ai    —— 「Week 1: 标题」，且 Required/Further Readings 分小节",
+        "  persp —— 「WEEK 1 (9/29, 10/1): 标题」",
+        "  linc  —— 不标周次，按上课日期排（周次由学期日历自动折算）"
+      ],
+      "folder": "Example Course A",
+      "syllabus": "Syllabus for Example Course A.pdf",
+      "parser": "era",
+      "canvas_course_id": "10001",
+      "codes": ["ANTH 10001"],
+      "has_week0": false,
+      "public": false
+    },
+    {
+      "_README": [
+        "public=true 表示课程对外公开（你未必正式选课）。",
+        "这类课 fetch_public_course.py 可以 Python 直连抓取，不需要浏览器：",
+        "它会读 Page 正文里的文件链接，那些链接自带 verifier 签名。"
+      ],
+      "folder": "Example Course B",
+      "syllabus": "Example Course B.pdf",
+      "parser": "ai",
+      "canvas_course_id": "10002",
+      "codes": ["MACS 10002"],
+      "has_week0": false,
+      "public": true
+    },
+    {
+      "_README": "canvas_course_id 填 null 表示这门课不走 Canvas（材料在网盘或图书馆），用 ingest_zip.py 导入",
+      "folder": "Example Course C",
+      "syllabus": "Example Course C Syllabus.docx",
+      "parser": "linc",
+      "canvas_course_id": null,
+      "codes": ["LING 10003"],
+      "has_week0": false,
+      "public": false
+    }
+  ]
+}

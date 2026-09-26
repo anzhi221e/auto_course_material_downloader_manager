@@ -1,158 +1,222 @@
-# Syllabus-Driven Course Reading Organizer
+# Auto Course Material Downloader & Manager
 
-Files your course readings into `<Course>/Week 03_1012_1018/` — driven by what the
-syllabus actually assigns, not by guesswork.
+[中文说明](README.zh-CN.md)
 
-Built for a Canvas school, but every school-specific thing lives in `courses.json`.
+Files your course readings into `<Course>/Week 03_1012_1018/` based on **what the
+syllabus actually assigns** — separating required from optional, and telling you
+what you're still missing.
 
----
-
-## Why this exists
-
-Downloading a term's readings is easy. Knowing **which week each one belongs to**,
-and **whether you still have gaps**, is not. This tool:
-
-1. Parses your syllabi into an index: course → week → reading, with required/optional
-2. Pulls material from wherever the instructor happens to have put it
-3. Files each file into the right week, or **refuses to guess** when evidence is thin
-4. Reconciles against the syllabus so you can see what's still missing
-
-The last point matters most. Correct filing is not the same as complete coverage.
+Built against Canvas, but every school- and term-specific value lives in one
+config file.
 
 ---
 
-## The core design rule
+## The problem this solves
+
+Downloading a term's readings is easy. The hard parts are:
+
+- **Which week does this PDF belong to?** Filenames like `3034157.pdf` or
+  `hall_1996.pdf` don't say.
+- **Is this required or optional?** Syllabi mark it; downloads don't.
+- **What am I still missing?** Having 100 files doesn't mean having all of them.
+- **Instructors organize material inconsistently.** Modules, Files folders,
+  links inside pages, Dropbox — sometimes several within one school.
+
+This tool parses your syllabi into an index, pulls material from wherever the
+instructor put it, and reconciles the two.
+
+---
+
+## Core design rule
 
 > **Prefer authority over inference. When neither is conclusive, do nothing.**
 
-Placement decisions come from four tiers, highest first:
+Your downloads folder is the OS default — full of tax forms, invoices, and
+screenshots. So placement is allow-list only, decided in four tiers:
 
-| Tier | Source | Certainty |
+| Tier | Basis | Certainty |
 |---|---|---|
-| 1 | Recorded placement (`file_titles.json`) — read from Canvas structure at fetch time | Exact |
-| 2 | Canvas manifest — filename matches a file in a week-named module or folder | Exact |
-| 3 | Fuzzy manifest match — file was renamed but overlaps a known entry ≥75% | High |
-| 4 | Syllabus matching — author surname **required**, plus title-token coverage | Scored |
+| 1 | Placement recorded at fetch time, read from Canvas structure | Exact |
+| 2 | Filename matches a file in a week-named module or folder | Exact |
+| 3 | File was renamed but overlaps a known entry ≥75% | High |
+| 4 | Syllabus match: author surname **required**, plus title-token coverage | Scored |
 
-If tier 4's best candidate doesn't beat the runner-up by `margin`, the file **stays
-where it is** and gets listed for review. Failures are refusals, not misplacements.
-
----
-
-## Instructors organize material in at least three different ways
-
-This was learned the hard way — each one broke an earlier version. All three are
-now tried in parallel and **unioned**; a failure in one never disables the others.
-
-### 1. Canvas Modules
-
-Modules named `Week 3: …`. Items of type `File` hang off them directly.
-Handled by `canvas_snippet.js` → `sort_downloads.py`.
-
-*Gotcha:* the bulk `/api/v1/courses/:id/files` endpoint is often **403** for
-students. Per-file `/files/:id` usually still works, so files are resolved
-individually as a fallback.
-
-### 2. Canvas Files folders (no modules at all)
-
-No modules; the `Files` tab has folders literally named `Week 0`, `Week 1`, …
-The week lives in the folder hierarchy. Handled automatically — folder names are
-read via `/folders` and joined to files by `folder_id`.
-
-### 3. Readings embedded in Canvas Pages
-
-Modules contain only `Page` and `Assignment` items; the actual readings are
-hyperlinks **inside the page body**. The page HTML is fetched and
-`a[href*="/files/"]` anchors are parsed; the anchor's `title` attribute supplies
-the filename, and `Required Readings:` / `Further Readings:` headings in the body
-supply required-vs-optional.
-
-*Bonus:* if the course is **publicly accessible**, those links carry a `verifier`
-signature and work without a session — so `fetch_public_course.py` can do the whole
-job in Python, no browser needed. Set `"public": true` on the course.
-
-### 4. Not on Canvas at all
-
-Some courses distribute a Dropbox/Drive folder or point at the library. Download
-the folder as one archive and hand it to `ingest_zip.py`, which uses the archive's
-own folder structure first (`Week 3`, `10.13`, `Oct 27` all recognized) and falls
-back to syllabus matching.
-
-### Adding a fifth
-
-`canvas_snippet.js` exposes `buildManifest(io, opts)`, where `io` is just
-`{getJSON, getText, parseDoc, log, warn}`. A new source means adding one more
-loop that contributes to `byId` and `place` — see the three existing ones. Then
-add a fixture to `test_canvas_scrape.js`.
+If tier 4's best candidate doesn't beat the runner-up by a margin, the file
+**stays put** and is listed for review. Failures are refusals, not misplacements.
 
 ---
 
-## Setup
+## Quick start
+
+### Step 1 — Requirements
 
 ```bash
-cp courses.example.json courses.json     # then edit it
-python build_index.py                    # parse syllabi -> readings_index.json
+python --version            # 3.9+
+pip install pymupdf python-docx
+node --version              # optional, only to run the JS tests
 ```
 
-`courses.json` holds everything school- and term-specific. Nothing else needs editing.
+### Step 2 — Create your config
 
-### Term calendar: quarter, semester, any year
+```bash
+cp courses.example.json courses.json
+```
 
-Week folder dates are **computed**, never hardcoded:
+Then edit `courses.json`. This is the only file you need to change.
+
+### Step 3 — Set your term calendar
 
 ```jsonc
 "term": {
   "week1_monday": "2026-09-28",
-  "week_count": 10,               // quarter ~10, semester ~15
-  "has_week0": false,             // true if there's an orientation week
+  "week_count": 10,
+  "has_week0": false,
   "breaks": [ { "name": "Thanksgiving", "monday": "2026-11-23" } ]
 }
 ```
 
-> **Breaks are the thing people get wrong.** Weeks are not "previous + 7 days".
-> A single break week shifts every subsequent week by one. List them in `breaks`
-> and numbering skips them correctly. `python weeks.py` prints the resulting
-> calendar — check it before anything else.
+**Decision: quarter or semester?**
 
-Courses that schedule by date rather than week number need no date table: dates
-are resolved through this same calendar.
-
-### Recognizing week labels
-
-Defaults cover `Week 3`, `Unit 3`, `Wk 3`, `Session 3`, `Topic 3`, `第3周`.
-Add your own with `"week_patterns": ["\\bSemaine\\s*(\\d{1,2})\\b"]` — each regex
-must have one capturing group for the number.
-
-### Syllabus formats
-
-`parser` picks how a syllabus is split into weeks:
-
-| `parser` | Matches |
+| System | `week_count` |
 |---|---|
-| `era` | `Week 1 (Sep 30) Title` |
-| `ai` | `Week 1: Title`, with `Required Readings:` / `Further Readings:` sections |
-| `persp` | `WEEK 1 (9/29, 10/1): TITLE` |
-| `linc` | No week numbers; sessions headed by date (`9/29, Tuesday – …`) |
+| Quarter | 10–11 |
+| Semester | 14–16 |
 
-A format none of these fit needs a new splitter in `build_index.py` (they're ~3
-lines each) plus a case in `test_sorting.py`.
+**Decision: do you have an orientation week before week 1?**
+Set `has_week0: true` and you'll get a `Week 00_…` folder.
 
-Required-vs-optional is detected from section headings, or from per-entry markers
-(`**` required, `*` recommended, `+` optional) where the syllabus uses them.
+> ⚠️ **Breaks are what people get wrong.** Weeks are *not* "previous + 7 days".
+> One break week shifts every later week by one. List every break — Thanksgiving,
+> fall break, spring break, reading week — and numbering skips them correctly.
+
+Verify before going further:
+
+```bash
+python weeks.py
+```
+
+This prints the calendar it computed. Check week 1 and the week after each break
+against your actual schedule. Everything downstream depends on this.
+
+### Step 4 — Describe your courses
+
+One entry per course. `folder` must match the folder name on disk exactly.
+
+```jsonc
+{
+  "folder": "Ethnographic Research",
+  "syllabus": "Syllabus ANTH 33506.pdf",
+  "parser": "era",
+  "canvas_course_id": "12345",
+  "has_week0": false,
+  "public": false
+}
+```
+
+**Decision: which `parser`?** Open your syllabus and match the week headings:
+
+| Your syllabus looks like | `parser` |
+|---|---|
+| `Week 1 (Sep 30) Ethnography in Context` | `era` |
+| `Week 1: Symbolic technologies` + `Required Readings:` sections | `ai` |
+| `WEEK 1 (9/29, 10/1): NARRATIVES` | `persp` |
+| No week numbers — sessions headed by date, e.g. `9/29, Tuesday – Topic` | `linc` |
+
+None of these fit? See [Adding a syllabus format](#adding-a-syllabus-format).
+
+**Decision: where does this course's material live?** This determines which tool
+you use — see the next section.
+
+### Step 5 — Build the index
+
+```bash
+python build_index.py
+```
+
+Prints how many readings it found per week. **Sanity-check these counts against
+your syllabus.** If a week shows 0 or an implausible number, the parser choice is
+probably wrong.
+
+---
+
+## Choosing how to fetch material
+
+Instructors distribute material in at least five different ways. Find yours:
+
+| What you see in the course | Use | Config |
+|---|---|---|
+| Modules named `Week 3`, with files attached | `canvas_snippet.js` | `canvas_course_id` |
+| No modules, but **Files** has folders named `Week 3` | `canvas_snippet.js` | same |
+| Modules contain only Pages; readings are links **inside** the page | `canvas_snippet.js` | same |
+| Course is **public** and you're auditing / not enrolled | `fetch_public_course.py` | `"public": true` |
+| A Dropbox / Drive folder, or nothing on Canvas at all | `ingest_zip.py` | `canvas_course_id: null` |
+
+The first three are detected automatically — all sources are tried in parallel and
+merged, so one failing never disables the others. You don't have to know which
+one your course uses.
+
+### Canvas courses (browser)
+
+```
+1. Open your Canvas in Chrome, confirm you're logged in
+2. F12 → Console  (first paste may require typing: allow pasting)
+3. Paste all of canvas_snippet.js, press Enter
+4. Run: python sort_downloads.py
+```
+
+The snippet exports a manifest and triggers downloads through your existing
+session. **No access token is created or stored.** Many schools disable personal
+API tokens; this works anyway.
+
+Edit the constants at the top of the snippet to limit scope:
+
+```js
+const ONLY_COURSE_IDS = [];      // [] = all courses; [12345] = just that one
+const EXTRA_COURSE_IDS = [];     // courses the list endpoint misses
+const DOWNLOAD_FILES = true;     // false = export the manifest only
+```
+
+### Public courses (no browser)
+
+If a course is publicly readable, its file links carry a signature that works
+without a session — so Python can do everything:
+
+```bash
+python fetch_public_course.py --all-public          # preview
+python fetch_public_course.py --all-public --apply  # download
+```
+
+Set `"public": true` on those courses. Re-run when the instructor publishes a new
+week; already-downloaded files are skipped.
+
+### Dropbox / Drive archives
+
+Download the whole folder as one archive (for Dropbox, change `dl=0` to `dl=1` in
+the share link), then:
+
+```bash
+python ingest_zip.py "path/to/archive.zip" --course "Course Folder" --list   # inspect
+python ingest_zip.py "path/to/archive.zip" --course "Course Folder"          # preview
+python ingest_zip.py "path/to/archive.zip" --course "Course Folder" --apply
+```
+
+It uses the archive's own folder structure first — `Week 3`, `10.13`, `Oct 27`,
+`October 13` are all recognized — then falls back to syllabus matching. Only the
+archive you name is touched; the downloads folder is never scanned for archives.
 
 ---
 
 ## Daily use
 
-| Script | What it does |
+| Command | Purpose |
 |---|---|
-| `build_index.py` | Re-parse syllabi. Run after a syllabus changes. |
-| `canvas_snippet.js` | Paste into the Canvas console. Exports a manifest and triggers downloads. |
-| `fetch_public_course.py` | Pure-Python fetch for public courses. No browser. |
-| `ingest_zip.py` | Import a Dropbox/Drive archive. |
-| `sort_downloads.py` | File anything in the downloads folder. |
-| `reorganize.py` | Re-sort already-filed material after a rule or syllabus change. |
-| `sort_downloads.py --coverage` | **Reconcile against the syllabus.** |
+| `python sort_downloads.py` | File whatever is in the downloads folder |
+| `python sort_downloads.py --coverage` | **Reconcile against the syllabus** |
+| `python sort_downloads.py --undo` | Reverse the last batch |
+| `python reorganize.py --apply` | Re-sort already-filed material after a rule change |
+| `python build_index.py` | Re-parse syllabi after one is updated |
+
+Windows users: numbered `.bat` files wrap these for double-clicking.
 
 `--coverage` is the one to run regularly:
 
@@ -162,23 +226,95 @@ Required-vs-optional is detected from section headings, or from per-entry marker
         missing (required): Marsilli-Vargas 2022 — Genres of Listening
 ```
 
+Correct filing is not the same as complete coverage. This is the only thing that
+catches a silently missing reading.
+
 ---
 
-## Safety
+## How required vs optional is decided
 
-The downloads folder is the OS default, full of unrelated files. The sorter is
-allow-list only:
+Required readings go in the week folder; everything else goes in
+`Week 03_…/Additional Readings/`.
 
-- An author surname from the syllabus **must** appear — no surname, no move
-- Only configured extensions are considered; `.exe`/`.zip`/`.jpg` never enter
-- Top level only, no recursion
-- Skips `.crdownload`/`.part` and anything modified in the last 30 seconds
-- A file matching >10 entries is treated as a bibliography and left alone
-- **Filename evidence outranks body text.** A file *named* for an author is that
+Detected from whichever your syllabus uses:
+
+- **Section headings** — `Required Readings:`, `Further Readings (optional):`,
+  `Optional/Provided:`
+- **Per-entry markers** — `**` required, `*` strongly recommended, `+` optional
+- **Canvas page structure** — headings in the page body, when readings are linked there
+
+A reading assigned in several weeks is **copied into each one**, so opening any
+week folder shows everything due that week.
+
+---
+
+## Configuration reference
+
+### Recognizing week labels
+
+Defaults: `Week 3`, `Unit 3`, `Wk 3`, `Session 3`, `Topic 3`, `第3周`.
+Add your own (one capturing group for the number):
+
+```jsonc
+"week_patterns": ["\\bSemaine\\s*(\\d{1,2})\\b", "\\bLecture\\s*(\\d{1,2})\\b"]
+```
+
+### Matching thresholds
+
+```jsonc
+"matching": {
+  "min_score": 8.0,       // raise → stricter; lower → more aggressive
+  "margin": 2.0,          // best must beat runner-up by this
+  "max_candidates": 10,   // matching more entries than this = bibliography, skip
+  "min_age_seconds": 30   // ignore files still being written
+}
+```
+
+Defaults are deliberately conservative. If files are being skipped that should
+match, lower `min_score` to ~5. If anything is ever misfiled, raise `margin`.
+Scores are normalized, so these mean the same thing whether your index has 50
+readings or 500.
+
+### Paths
+
+```jsonc
+"paths": {
+  "base_dir": "",                                  // "" = parent of this folder
+  "downloads_dir": "C:\\\\Users\\\\NAME\\\\Downloads"
+}
+```
+
+### Adding a syllabus format
+
+`build_index.py` has one splitter per format, ~3 lines each. Copy the closest one,
+regex your week headings, register it in `SPLITTERS`, then add a case to
+`test_sorting.py`.
+
+### Adding a material source
+
+`canvas_snippet.js` exposes `buildManifest(io, opts)` where `io` is just
+`{getJSON, getText, parseDoc, log, warn}` — no globals, no fetch. Add a loop that
+contributes to `byId` (files) and `place` (week per file), following the three
+existing sources. Then add a fixture to `test_canvas_scrape.js`.
+
+---
+
+## Safety guarantees
+
+The downloads folder is shared with everything else you download, so:
+
+- An author surname from the syllabus **must** appear, or nothing moves
+- Only configured extensions are considered; `.exe`, `.zip`, `.jpg` never enter
+- Top level only, no recursion into subfolders
+- Skips `.crdownload` / `.part` and anything modified in the last 30 seconds
+- A file matching more than `max_candidates` entries is treated as a bibliography
+  and left alone
+- **Filename evidence outranks body text.** A file *named* for a work is that
   work; a file that merely *cites* it is not. Body text is read only when the
   filename is a meaningless ID like `3034157.pdf`
-- Dry run first, confirm, then move. Every move is logged and `--undo` reverses it
+- Dry run first, confirm, then move. Every move is logged; `--undo` reverses it
 - Long paths are shortened automatically (Windows `MAX_PATH` is 260)
+- Duplicate downloads (`file (1).pdf`) are recognized, not filed twice
 
 ---
 
@@ -189,29 +325,53 @@ python test_sorting.py        # 37 cases
 node test_canvas_scrape.js    # 10 cases
 ```
 
-Neither needs network or personal data. Every case corresponds to a bug that
-actually happened. Some worth knowing about:
+No network, no personal data. Every case corresponds to a bug that actually
+happened, including:
 
-- A chapter assigned in week 7 being filed under week 2 because the filename also
+- A chapter assigned in week 7 filed under week 2, because the filename also
   contained the book title
-- Hyphenated surnames (`Lévi-Strauss`) never matching, because the index stored
-  the hyphen but filenames tokenize to letters only
-- Scoring thresholds that were tuned against a 300-entry index and silently
-  rejected everything for smaller ones — IDF is now normalized so thresholds mean
-  the same thing at any corpus size
-- Prose paragraphs in a syllabus being parsed as citations, inflating the
-  "missing" list with entries that never existed
+- Hyphenated surnames (`Lévi-Strauss`) never matching, because the index kept the
+  hyphen while filenames tokenize to letters
+- Thresholds tuned against a 300-entry index silently rejecting everything for
+  smaller ones — scores are now scale-independent
+- Prose paragraphs in a syllabus parsed as citations, inflating the "missing" list
+- A data source removed because *one* course returned 403, breaking every other
+  course that relied on it
+
+Add a case before changing a matching rule.
 
 ---
 
 ## Privacy
 
-`.gitignore` excludes everything derived from your account. In particular
-**`canvas_manifest.json` contains signed download URLs** — publishing it hands out
-access to the course material. Also excluded: `readings_index.json` (a full
-extract of your instructors' syllabi), `moves_log.csv` (absolute paths), and
-`courses.json`.
+No account data is committed. `.gitignore` excludes:
 
-Nothing is uploaded anywhere. No access token is used or stored: the browser
-snippet runs inside your existing session, and public-course fetching relies on
+| File | Why |
+|---|---|
+| `canvas_manifest.json` | **Contains signed download URLs** — publishing it hands out access to the material |
+| `readings_index.json` | A full extract of your instructors' syllabi |
+| `moves_log.csv` | Absolute paths, including your username |
+| `courses.json`, `config.json`, `file_titles.json` | Local paths and course structure |
+
+Nothing is uploaded anywhere. No access token is created or stored — the browser
+snippet runs inside your existing session, and public-course fetching uses
 signatures the server already hands out.
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| `build_index.py` reports 0 readings for a week | Wrong `parser` for that syllabus |
+| Week folder dates look off after a holiday | A break is missing from `breaks` |
+| Everything lands in "couldn't determine" | Index too small for default thresholds — lower `min_score` |
+| Canvas returns 403 on files | Normal; per-file lookups are used instead |
+| Snippet reports files but no weeks | Module/folder names don't match any `week_patterns` |
+| `allow pasting` errors in the console | That text is only needed when Chrome prompts for it — otherwise just paste |
+
+---
+
+## License
+
+MIT. See [LICENSE](LICENSE).

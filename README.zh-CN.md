@@ -46,7 +46,44 @@
 
 ## 快速上手
 
-### 第 1 步 — 环境
+### 最快的路：跑初始化向导
+
+把这学期的 syllabus 都放进一个文件夹，然后：
+
+```bash
+pip install pymupdf python-docx
+python setup_wizard.py
+```
+
+它会：
+
+- 问你课程文件夹建在哪、下载夹在哪
+- 扫描那个文件夹，自动跳过不是 syllabus 的文件
+- 猜每门课的名字，并**逐个让你确认**
+- 四种解析器全试一遍，选解析效果最好的那个
+- **从 syllabus 里的上课日期反推学期日历**——包括停课周，靠相邻两周的日期跳变识别
+- 建好每门课的文件夹、每一周的文件夹、以及作业归档文件夹
+- 替你写出 `courses.json`
+
+> **请核对它给出的课程名。** 这是从 syllabus 正文猜的，PDF 断行会让它猜偏。
+> 文件夹名一错，后面所有归类都跟着错，所以向导会停下来逐个问你。
+
+然后验证并建立索引：
+
+```bash
+python weeks.py            # 核对推断出的日历和你的实际课表
+python build_index.py      # 解析 syllabus 建立索引
+```
+
+Windows：双击 `0 初始化向导.bat` 即可。
+
+如果向导哪里猜错了，或者你更想手动配置，见下面的手动流程。
+
+---
+
+### 手动配置
+
+#### 第 1 步 — 环境
 
 ```bash
 python --version            # 需要 3.9+
@@ -54,7 +91,7 @@ pip install pymupdf python-docx
 node --version              # 可选，只用于跑 JS 测试
 ```
 
-### 第 2 步 — 建立配置
+#### 第 2 步 — 建立配置
 
 ```bash
 cp courses.example.json courses.json
@@ -62,7 +99,7 @@ cp courses.example.json courses.json
 
 然后编辑 `courses.json`。**这是唯一需要你改的文件。**
 
-### 第 3 步 — 设置学期日历
+#### 第 3 步 — 设置学期日历
 
 ```jsonc
 "term": {
@@ -96,7 +133,7 @@ python weeks.py
 它会打印算出来的日历。**请核对第 1 周，以及每个停课周之后的那一周**，
 和你的实际课表对照。后面所有环节都依赖这个日历。
 
-### 第 4 步 — 描述你的课程
+#### 第 4 步 — 描述你的课程
 
 每门课一条。`folder` 必须和磁盘上的文件夹名完全一致。
 
@@ -124,7 +161,7 @@ python weeks.py
 
 **选择：这门课的材料放在哪？** 这决定你用哪个工具，见下一节。
 
-### 第 5 步 — 建立索引
+#### 第 5 步 — 建立索引
 
 ```bash
 python build_index.py

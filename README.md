@@ -51,7 +51,47 @@ If tier 4's best candidate doesn't beat the runner-up by a margin, the file
 
 ## Quick start
 
-### Step 1 — Requirements
+### The fast path: run the setup wizard
+
+Put this term's syllabi in one folder, then:
+
+```bash
+pip install pymupdf python-docx
+python setup_wizard.py
+```
+
+It will:
+
+- ask where course folders should go and where your downloads land
+- scan the folder, skip anything that isn't a syllabus
+- guess each course name and **ask you to confirm it**
+- pick the right syllabus parser by trying all of them and keeping the best
+- **infer the term calendar from the dates in your syllabi** — including break
+  weeks, detected from gaps between consecutive week dates
+- create every course folder, every week folder, and an assignment archive
+- write `courses.json` for you
+
+> **Review the course names it proposes.** They're guessed from syllabus text,
+> and PDF line breaks make that unreliable. A wrong folder name means every later
+> placement is wrong too, so the wizard stops and asks for each one.
+
+Then verify and build:
+
+```bash
+python weeks.py            # check the inferred calendar against your schedule
+python build_index.py      # parse syllabi into the reading index
+```
+
+Windows: `0 初始化向导.bat` double-clicks the wizard.
+
+If the wizard gets something wrong, or you'd rather set it up by hand, the manual
+route is below.
+
+---
+
+### Manual setup
+
+#### Step 1 — Requirements
 
 ```bash
 python --version            # 3.9+
@@ -59,7 +99,7 @@ pip install pymupdf python-docx
 node --version              # optional, only to run the JS tests
 ```
 
-### Step 2 — Create your config
+#### Step 2 — Create your config
 
 ```bash
 cp courses.example.json courses.json
@@ -67,7 +107,7 @@ cp courses.example.json courses.json
 
 Then edit `courses.json`. This is the only file you need to change.
 
-### Step 3 — Set your term calendar
+#### Step 3 — Set your term calendar
 
 ```jsonc
 "term": {
@@ -101,7 +141,7 @@ python weeks.py
 This prints the calendar it computed. Check week 1 and the week after each break
 against your actual schedule. Everything downstream depends on this.
 
-### Step 4 — Describe your courses
+#### Step 4 — Describe your courses
 
 One entry per course. `folder` must match the folder name on disk exactly.
 
@@ -130,7 +170,7 @@ None of these fit? See [Adding a syllabus format](#adding-a-syllabus-format).
 **Decision: where does this course's material live?** This determines which tool
 you use — see the next section.
 
-### Step 5 — Build the index
+#### Step 5 — Build the index
 
 ```bash
 python build_index.py

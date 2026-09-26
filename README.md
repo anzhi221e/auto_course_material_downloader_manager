@@ -2,9 +2,12 @@
 
 [中文说明](README.zh-CN.md)
 
-Files your course readings into `<Course>/Week 03_1012_1018/` based on **what the
-syllabus actually assigns** — separating required from optional, and telling you
-what you're still missing.
+Auto-download your course materials from Canvas and Dropbox, and auto-sort them
+into weekly folders.
+
+Files readings into `<Course>/Week 03_1012_1018/` based on **what the syllabus
+actually assigns** — separating required from optional, and telling you what
+you're still missing.
 
 Built against Canvas, but every school- and term-specific value lives in one
 config file.

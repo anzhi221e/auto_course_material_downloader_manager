@@ -294,7 +294,18 @@ Windows 用户：带编号的 `.bat` 文件是这些命令的双击入口。
 
 ## 必读 / 选读怎么判定
 
-必读放周文件夹，其余放 `Week 03_…/Additional Readings/`。
+必读放周文件夹，选读放 `Week 03_…/Additional Readings/`。
+**你自己的作业放 `Week 03_…/Assignments/`，所有脚本都永不触碰那里。**
+
+```
+Ethnographic Research/
+├── Week 03_1012_1018/
+│   ├── reading.pdf              <- 必读
+│   ├── Additional Readings/     <- 选读
+│   └── Assignments/             <- 你的东西。不扫、不计数、不移动
+└── Submitted Assignments Archive/
+```
+
 
 按你的 syllabus 实际使用的方式识别：
 
@@ -360,6 +371,8 @@ Windows 用户：带编号的 `.bat` 文件是这些命令的双击入口。
 
 下载夹和你所有其它下载混在一起，所以：
 
+- **`Assignments/` 永不进入。** 不扫描、不计数、不移动，任意层级都一样——
+  你的作业稿就算取名和某篇阅读一样，也不会被动
 - syllabus 里的作者姓氏**必须**出现，否则什么都不搬
 - 只考虑配置里列出的扩展名，`.exe`、`.zip`、`.jpg` 压根不进候选
 - 只扫顶层，不递归进子文件夹

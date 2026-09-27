@@ -314,7 +314,18 @@ catches a silently missing reading.
 ## How required vs optional is decided
 
 Required readings go in the week folder; everything else goes in
-`Week 03_…/Additional Readings/`.
+`Week 03_…/Additional Readings/`. Your own work goes in
+`Week 03_…/Assignments/`, which no script ever touches.
+
+```
+Ethnographic Research/
+├── Week 03_1012_1018/
+│   ├── reading.pdf              <- required
+│   ├── Additional Readings/     <- optional
+│   └── Assignments/             <- YOURS. Never scanned, never moved.
+└── Submitted Assignments Archive/
+```
+
 
 Detected from whichever your syllabus uses:
 
@@ -383,6 +394,8 @@ existing sources. Then add a fixture to `test_canvas_scrape.js`.
 
 The downloads folder is shared with everything else you download, so:
 
+- **`Assignments/` is never entered.** Not scanned, not counted, not moved, at
+  any depth. A draft of yours can be named after an assigned reading without risk
 - An author surname from the syllabus **must** appear, or nothing moves
 - Only configured extensions are considered; `.exe`, `.zip`, `.jpg` never enter
 - Top level only, no recursion into subfolders

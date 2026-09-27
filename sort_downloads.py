@@ -611,10 +611,13 @@ def gather_files(cfg):
         sys.exit("下载目录不存在：%s" % dl)
     exts = {e.lower() for e in cfg["extensions"]}
     it = dl.rglob("*") if cfg["recurse"] else dl.glob("*")
+    # 万一下载夹被指到课程目录里，也不能扫进作业目录
     now = time.time()
     out = []
     for p in it:
         if not p.is_file():
+            continue
+        if W.is_protected(p):              # 作业目录里的东西一律不碰
             continue
         if p.suffix.lower() not in exts:
             continue

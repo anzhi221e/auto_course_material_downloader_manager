@@ -33,8 +33,8 @@ import sort_downloads as sd                       # noqa: E402
 import canvas_fetch as cf                         # noqa: E402
 import weeks as W                                 # noqa: E402
 
-# 这些目录不参与重排
-LEAVE_ALONE = {"Submitted Assignments Archive", W.UNLISTED_SUBDIR}
+# 不参与重排的目录统一由 weeks.PROTECTED_DIRS 定义。
+# 原先这里只检查课程根目录下的第一层，所以 Week 03/Assignments/ 不受保护。
 
 
 def course_files(cdir, exts):
@@ -44,7 +44,7 @@ def course_files(cdir, exts):
         if not p.is_file() or p.suffix.lower() not in exts:
             continue
         rel = p.relative_to(cdir)
-        if rel.parts and rel.parts[0] in LEAVE_ALONE:
+        if W.is_protected(rel):            # 任意一层命中即跳过
             continue
         if len(rel.parts) == 1:
             continue                    # 课程根目录下的散文件（syllabus 等）不动

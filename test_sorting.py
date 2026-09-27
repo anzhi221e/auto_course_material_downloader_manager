@@ -259,6 +259,39 @@ def test_dedup():
     check("去后缀规则", sd.DUP_SUFFIX_RE.sub("", "booth 21-34 (2)"), "booth 21-34")
 
 
+def test_assignment_isolation():
+    print("")
+    print("[作业目录隔离]")
+    # 你自己的作业稿绝不能被当成「放错位置的阅读材料」挪走
+    check("Assignments 受保护",
+          W.is_protected("Week 03_1012_1018/Assignments/draft.docx"), True)
+    check("Assignments 的子目录也受保护",
+          W.is_protected("Week 03_1012_1018/Assignments/old/v1.docx"), True)
+    check("课程级的提交归档受保护",
+          W.is_protected("Submitted Assignments Archive/final.pdf"), True)
+    check("Additional Readings 不受保护（那是选读，要参与归类）",
+          W.is_protected("Week 03_1012_1018/Additional Readings/x.pdf"), False)
+    check("周文件夹顶层的阅读材料不受保护",
+          W.is_protected("Week 03_1012_1018/geertz.pdf"), False)
+
+    # 真实目录树：reorganize 的遍历必须跳过作业，但仍收上阅读材料
+    import reorganize as ro
+    with tempfile.TemporaryDirectory() as td:
+        cdir = Path(td) / "Some Course"
+        wk = cdir / "Week 03_1012_1018"
+        (wk / W.ASSIGNMENTS_SUBDIR / "drafts").mkdir(parents=True)
+        (wk / W.ADDITIONAL_SUBDIR).mkdir(parents=True)
+        (wk / "reading.pdf").write_bytes(b"x")
+        (wk / W.ADDITIONAL_SUBDIR / "optional.pdf").write_bytes(b"x")
+        (wk / W.ASSIGNMENTS_SUBDIR / "my essay.pdf").write_bytes(b"x")
+        (wk / W.ASSIGNMENTS_SUBDIR / "drafts" / "v1.pdf").write_bytes(b"x")
+        (cdir / "syllabus.pdf").write_bytes(b"x")
+
+        got = sorted(p.name for p in ro.course_files(cdir, {".pdf"}))
+        check("重排只收阅读材料，不收作业",
+              got, ["optional.pdf", "reading.pdf"])
+
+
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
     print("Python 侧回归测试")
@@ -270,5 +303,6 @@ if __name__ == "__main__":
     test_status_routing()
     test_index_parsing()
     test_dedup()
+    test_assignment_isolation()
     print("\n通过 %d，失败 %d" % (PASS, FAIL))
     sys.exit(1 if FAIL else 0)

@@ -22,6 +22,34 @@ EXAMPLE_FILE = HERE / "courses.example.json"
 
 ADDITIONAL_SUBDIR = "Additional Readings"     # 每周的选读放这里
 UNLISTED_SUBDIR = "_Library (not in syllabus)"  # 对不上 syllabus 的补充资料
+ASSIGNMENTS_SUBDIR = "Assignments"            # 你自己的作业，脚本绝不触碰
+
+# 脚本永不进入、永不移动、永不计数的目录。
+# 这些放的是**你自己的东西**（作业稿、提交记录），不是下载来的阅读材料。
+# 名字只匹配路径中的任意一层，所以 Week 03/Assignments/drafts/v2.docx 同样受保护。
+PROTECTED_DIRS = {
+    ASSIGNMENTS_SUBDIR,
+    "Submitted Assignments Archive",
+    UNLISTED_SUBDIR,
+}
+
+
+def is_protected(path, relative_to=None):
+    """
+    路径是否落在受保护目录里（任意一层命中即算）。
+
+    归类脚本会递归遍历课程目录，如果不拦住，你放在 Week 03/Assignments/ 里的
+    作业稿会被当成「放错位置的阅读材料」挪走。原先的保护名单只检查课程根目录
+    下的第一层，周文件夹里的 Assignments 并不在保护范围内。
+    """
+    p = Path(path)
+    parts = p.parts
+    if relative_to is not None:
+        try:
+            parts = p.relative_to(relative_to).parts
+        except ValueError:
+            pass
+    return any(part in PROTECTED_DIRS for part in parts)
 
 DIR_RE = re.compile(r"^Week\s*(\d{1,2})(?:[_\s].*)?$", re.I)
 

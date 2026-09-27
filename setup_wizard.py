@@ -367,15 +367,20 @@ def main():
         cdir = base / c["folder"]
         plan.append(cdir)
         for wk in ([0] if c["has_week0"] else []) + list(range(1, term["week_count"] + 1)):
-            plan.append(cdir / W.week_dir(wk))
+            wdir = cdir / W.week_dir(wk)
+            plan.append(wdir)
+            # 每周一个作业目录。脚本永不进入（见 weeks.PROTECTED_DIRS），
+            # 所以你的作业稿和下载来的阅读材料彻底隔离。
+            plan.append(wdir / W.ASSIGNMENTS_SUBDIR)
         plan.append(cdir / "Submitted Assignments Archive")
     todo = [p for p in plan if not p.exists()]
     for c in courses:
         cdir = base / c["folder"]
         mark = "新建" if not cdir.exists() else "已有"
         print("  [%s] %s" % (mark, c["folder"]))
-    print("\n  共需创建 %d 个文件夹（%d 门课 × %d 周 + 作业归档）"
-          % (len(todo), len(courses), term["week_count"] + (1 if term["has_week0"] else 0)))
+    nw = term["week_count"] + (1 if term["has_week0"] else 0)
+    print("\n  共需创建 %d 个文件夹（%d 门课 × %d 周，每周含 %s/，另加作业归档）"
+          % (len(todo), len(courses), nw, W.ASSIGNMENTS_SUBDIR))
     print("  周文件夹示例：%s ... %s" % (W.week_dir(1), W.week_dir(term["week_count"])))
 
     if not args.apply:
